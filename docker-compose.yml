@@ -1,0 +1,67 @@
+services:
+  db:
+    image: mariadb:10.5
+    container_name: db
+    env_file:
+    - .env
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+    secrets:
+      - mysql_root_password
+      - mysql_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - esgi-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$(cat /run/secrets/mysql_root_password)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    build: 
+      context: back/
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - .env
+    secrets:
+      - mysql_password
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - esgi-network
+
+  frontend:
+    build: 
+      context: front/
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - esgi-network
+
+networks:
+  esgi-network:
+    driver: bridge
+
+volumes:
+  db_data:
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.secret
+  mysql_password:
+    file: ./secrets/mysql_password.secret

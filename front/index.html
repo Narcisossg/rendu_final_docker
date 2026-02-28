@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test App</title>
+</head>
+<body>
+
+<h1>Test MySQL</h1>
+
+<input id="messageInput" placeholder="Tape quelque chose">
+<button onclick="send()">Envoyer</button>
+
+<ul id="messages"></ul>
+
+<script>
+async function send() {
+  const content = document.getElementById("messageInput").value;
+  await fetch("http://localhost:3000/add", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ content })
+  });
+  load();
+}
+
+async function load() {
+  const res = await fetch("http://localhost:3000/messages");
+  const data = await res.json();
+  const list = document.getElementById("messages");
+  list.innerHTML = "";
+  data.forEach(msg => {
+    const li = document.createElement("li");
+    li.innerText = msg.content;
+    list.appendChild(li);
+  });
+}
+
+load();
+</script>
+
+</body>
+</html>
